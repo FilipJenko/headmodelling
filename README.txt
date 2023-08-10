@@ -4,11 +4,11 @@ make sure you have all the modules needed by the functions installed
 
 this is an example of processing one scan
 scan folder - .obj and .jpg file of the scan
+actuallySelectingColors - selecting color masks to use in the script; in it I used %matplotlib widget which I had some difficulties installing; it is used for spinning a 3D scatter plot; the line can be deleted
 coordsTest.txt - test output
 functionsFinal - functions used
-gitTest - running script
 Standard_Optodes.txt - coordinates of the montage to align to
-actuallySelectingColors - selecting color masks to use in the script; in it I used %matplotlib widget which I had some difficulties installing; it is used for spinning a 3D scatter plot; the line can be deleted
+testScript - running script
 
 montage needed:
 when you have a montage you want, you should add the reference points to the montage; this can be done in NIRSite: first load your montage, add reference points as optodes labeled as other: Nz, Iz, Rpa, Lpa and Cz should be labeled as  O01, O02, O03, O04, O05 in order
@@ -22,5 +22,5 @@ user should be careful and make sure, cables are not on top of the any sticker, 
 the script works even if the stickers are not that well seen, if there is only half of the sticker visible, results are accordingly worse
 
 after scanning:
-what is needed: a .obj and a .jpg file from a scan; the scan needs to be processed (ExStar - scanner software) already and the user should confirm that color stickers can be well seen in the mesh
+what is needed: an .obj and a .jpg file from a scan; the scan needs to be processed (ExStar - scanner software) already and the user should confirm that color stickers can be well seen in the mesh
  
