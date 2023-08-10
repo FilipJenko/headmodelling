@@ -1,8 +1,11 @@
 Filip Jenko, august 2023
 
+this is an example of processing one scan
+input files are the .obj and .jpg files from the scan, Standard_Optodes.txt of points from the montage and the inputs written in testScript
+the script outputs a .txt file with the labels (sources, detectors or reference points) and their coordinates
+
 make sure you have all the modules needed by the functions installed
 
-this is an example of processing one scan
 scan folder - .obj and .jpg file of the scan
 actuallySelectingColors - selecting color masks to use in the script; in it I used %matplotlib widget which I had some difficulties installing; it is used for spinning a 3D scatter plot; the line can be deleted
 coordsTest.txt - test output
