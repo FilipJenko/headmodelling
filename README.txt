@@ -11,11 +11,11 @@ it needs to be placed in the scan folder
 make sure you have all the modules needed by the functions installed
 
 scan folder - .obj and .jpg file of the scan
-actuallySelectingColors - selecting color masks to use in the script; in it I used %matplotlib widget which I had some difficulties installing; it is used for spinning a 3D scatter plot; the line can be deleted
+actuallySelectingColors - selecting color masks to use in the script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
 coordsTest.txt - test output
 functionsFinal - functions used
 Standard_Optodes.txt - coordinates of the montage to align to
-testScript - running script
+testScript - running script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
 
 montage needed:
 when you have a montage you want, you should add the reference points to the montage; this can be done in NIRSite: first load your montage, add reference points as optodes labeled as other: Nz, Iz, Rpa, Lpa and Cz should be labeled as  O01, O02, O03, O04, O05 in order
