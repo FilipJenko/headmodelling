@@ -4,6 +4,10 @@ this is an example of processing one scan
 input files are the .obj and .jpg files from the scan, Standard_Optodes.txt of points from the montage and the inputs written in testScript
 the script outputs a .txt file with the labels (sources, detectors or reference points) and their coordinates
 
+the .obj file is too big for github, so download it from this link: 
+https://drive.google.com/drive/folders/134eX9eocCyplw8JEKZgCUbtrGzL6bgeG?usp=sharing
+it needs to be placed in the scan folder
+
 make sure you have all the modules needed by the functions installed
 
 scan folder - .obj and .jpg file of the scan
