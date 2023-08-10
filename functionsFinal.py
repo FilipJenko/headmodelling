@@ -757,7 +757,7 @@ def processOne(readFileScan, readFileOptodes, readFileClustersBlue, readFileClus
         #use icp for better alignment so the corresponding points are found
         trUse, _ = icp(outYellow, trUse)
         #plot alignment
-        fig = p.figure(figsize=(15, 15)); 
+        fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
         for i in range(5):
             ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
@@ -768,7 +768,7 @@ def processOne(readFileScan, readFileOptodes, readFileClustersBlue, readFileClus
             ax.scatter(trRefPoints[i, 0], trRefPoints[i, 1], trRefPoints[i, 2], s=10, color='b')
             ax.scatter(orderedBlue[i, 0], orderedBlue[i, 1], orderedBlue[i, 2], s=10, color='r')
 
-        fig = p.figure(figsize=(15, 15)); 
+        fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
         for i in range(numElYellow):
             ax.scatter(use[i, 0], use[i, 1], use[i, 2], s=10, color='b')
@@ -914,7 +914,7 @@ def processAll(subject, masks, scans, bestScan, numElYellow, numElBlue, radius, 
             print(np.mean(errLabels[:, scan]), np.std(errLabels[:, scan]))
     #plot the last alignment
     if plot==True:
-        fig = p.figure(figsize=(15, 15)); 
+        fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
         for i in range(numElBlue):
             ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
@@ -925,7 +925,7 @@ def processAll(subject, masks, scans, bestScan, numElYellow, numElBlue, radius, 
             ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
             ax.scatter(trOrderedBlue[i, 0], trOrderedBlue[i, 1], trOrderedBlue[i, 2], s=10, color='r')
 
-        fig = p.figure(figsize=(15, 15)); 
+        fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
         for i in range(numElYellow):
             ax.scatter(use[i, 0], use[i, 1], use[i, 2], s=10, color='b')
