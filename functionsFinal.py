@@ -546,11 +546,10 @@ def alignPoints(numElYellow,  orderedBlue, outYellow, refPoints, use):
         #find the closest point and index of the point it is closest to
         err2[i, 0]=min(err[i, :])
         err2[i, 1]=np.argmin(err[i, :])
-
     #check if each point is closest to a different point
     if len(err2[:, 1]) != len(set(err2[:, 1])):
         print('Error: some points are closest to the same point')
-    #same order of points as in labels2->labels from colin model used in the montage
+    #same order of points as in bestScan
     orderedTrOut=np.zeros_like(trOrderedYellow)
     errLabels=np.zeros(numElYellow)
     for i in range(numElYellow):
@@ -612,7 +611,7 @@ def writePointsTxt(numSor, numDet,  orderedBlue, outYellow, readFile, writeFile)
         print('Error: some points are closest to the same point')
         print(len(err2[:, 1]) , len(set(err2[:, 1])))
     orderedTrOut=np.zeros_like(outYellow)
-    #same order of points as in labels2->labels from colin model used in the montage
+    #same order of points as Standard_Optodes.txt
     errLabels=np.zeros(numElYellow)
     for i in range(numElYellow):
         orderedTrOut[i, :]=outYellow[np.where(err2[:, 1]==i), :]
@@ -730,9 +729,6 @@ def processOne(readFileScan, readFileOptodes, readFileClustersBlue, readFileClus
             orderedBlue, order=orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow)
         elif numElBlue==6:
             orderedBlue, order=orderReferencePoints6(numElBlue, outBlue, twoPoints)
-    #returns almost the same results
-    #outBlue=subtractCapThickness(outBlue, numElBlue, scan, order, 0.5, ["Cz", "Iz"]) 
-    #orderedBlue, _=orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow)
     #wrtie the final file and return ordered yellow points, ordered blue points and error to closest point in input use
     orderedYellow, orderedBlue, errLabels=writePointsTxt(numSor, numDet, orderedBlue, outYellow, readFileOptodes, writeFile)
     #print mean and std of error
@@ -911,9 +907,6 @@ def processAll(subject, masks, scans, bestScan, numElYellow, numElBlue, radius, 
         if scan==bestScan:
             refPoints=orderedBlue
             use=outYellow
-        #returns almost the same results
-        #outBlue=subtractCapThickness(outBlue, numElBlue, scan, order, 0.5, ["Cz", "Iz"]) 
-        #orderedBlue, _=orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow)
         #align the points to the reference points, return ordered points and error to closest point
         trOrderedYellow[:, :, scan], trOrderedBlue[:, :, scan], errLabels[:, scan]=alignPoints(numElYellow, orderedBlue, outYellow, refPoints, use)
         #print mean and std of error
