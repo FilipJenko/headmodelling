@@ -12,9 +12,26 @@ pull the git repository
 create an environment using the file environment.yml
 ( if you are using anaconda, go to anaconda prompt, navigate to the pulled directory, and run the command: conda env create -f environment.yml )
 download the .jpg and .obj files from the link: (don't forget to unzip)
-https://drive.google.com/drive/folders/1F-YYO4djdmKBdn2eeTFTqas8ItmRdH3F (ibs-lab drive)
+https://drive.google.com/drive/folders/134eX9eocCyplw8JEKZgCUbtrGzL6bgeG (google drive)
 it needs to be placed in the scan folder
 run the testScript
+
+CODE PROCEDURE
+-in preprocessing, the .obj and .jpg files are converted to matrices of scanned point coordinates and their hsv values (preProcessing)
+-scanned points are filtered with the input color masks to get points from the yellow and green stickers (pointsInMask)
+-from the filtered points, big enough clusters are detected (as many as we have sticekers) (finalClusters)
+-points, belonging to sticker clusters are written in seperate files (for possible visualization in blender) (writePoints)
+-plane is fitted to every cluster (getPlane)
+-points, too far away from the plane are discarded (writePointsNearPlane)
+-new points, belonging to clusters are rewritten in the files (writePointsNearPlane)
+-plane is refitted to every cluster (getPlane)
+-size of the optode is subtracted from the fitted plane in the direction of the normal towards the head (subtractOptode)
+-determining which reference point is which (orderReferencePoints6)
+(Iz and 6th sticker are closest together; Nz is furthest away from both of them; Cz lies roughly on the same plane as Nz, Iz and 6th sticker; 
+Rpa and Lpa are determinted from cross product of th known points)
+-now we know which scanned reference point is which and which montage reference point is which and we can fit montage points to the scanned points  (writePointsTxt)
+-labels of the scanned points are determined by the label of the closest montage point (writePointsTxt) 
+-labels and coordinates of the scanned points are written in the output (writePointsTxt)
 
 after running the script, you can check which coordinates are in the output:
 open NIRSite and select adult head model
@@ -26,7 +43,7 @@ click import and select:
 -uncheck scan to scalp
 load the output file, which this script generated
 
-if you notice that a point is wrongly detected:
+if you notice that a point is wrongly detected (setting color mask):
 -check which cluster has enough points, so it is recognised as an optode sticker
 -to do that, open actuallySelectingColors, run first 2 cells to get data
 -run cell #YELLOW to see yellow points in the selected mask (#GREEN for green points)
