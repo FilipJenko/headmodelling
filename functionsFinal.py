@@ -11,10 +11,10 @@ import os
 from scipy.optimize import minimize
 from scipy.spatial import KDTree
 
-
-#in the variable names and comments, blue points and stickers are used for scanned reference stickers; 
-#yellow points and stickers are used for the stickers on the other optodes
-#reference points refer to points, used for alignment of the blue points
+# in the functions, the name outReference and orderedReference is used for scanned reference points
+# the name outOptodes and orderedOptodes is used for scanned optode points
+# montageRefPoints is used for reference points from the montage
+# montageOptodes is used for optode points from the montage
 
 #functions needed for preprocessing
 def parse_v(fields):
@@ -48,7 +48,7 @@ def preProcessing(instring):
         vcolors_hsv: vertex colors in hsv (N, 3)
 
     example:
-        vnew, vcolors_rgb, vcolors_hsv=preProcessing("scan0/scan1post")
+        vnew, vcolors_rgb, vcolors_hsv=preProcessing("scan0/scan0post")
     '''
     # open file, read and split lines
     with open(instring+".obj") as fin:
@@ -87,7 +87,6 @@ def preProcessing(instring):
         rgb = vtcolors_rgb[idx_vt]
         hsv = vtcolors_hsv[idx_vt]
 
-        #print(idx_v, idx_vt)
         vcolors_rgb[idx_v,:] = rgb
         vcolors_hsv[idx_v,:] = hsv
 
@@ -95,7 +94,6 @@ def preProcessing(instring):
     vnew=np.copy(v)
     vnew[:, 0]=v[:, 0]-np.mean(v[:, 0])
     vnew[:, 1]=v[:, 1]-np.mean(v[:, 1])
-
     vnew[:, 2]=v[:, 2]-np.mean(v[:, 2])
 
     return vnew, vcolors_rgb, vcolors_hsv
@@ -124,9 +122,9 @@ def finalClusters(newPoints, eps, minSamples, numEl):
     '''
     input: 
         newPoints: vertices with mask input 1 (N, 3)
-        eps: radius of the neighborhood (int)
+        eps: radius of the neighborhood [mm] (int)
         minSamples: minimum number of points to form a cluster (int)
-        numEl: number of stickers (int)
+        numEl: number of points (scanned reference points or optode points) (int)
     output:
         finalClusters: clusters (list of lists:number of lists=numEl; each with size (N, 3), N is number of detected points in the cluster)
 
@@ -158,7 +156,7 @@ def writePoints(finalClusters, writeFile):
     '''
     #write points in ply file
     for k in range(len(finalClusters)):
-        meshio.write(writeFile.format(k+1), mesh=meshio.Mesh(points=finalClusters[k], cells = []), binary=False)#"scan{}/pointsYellow{}.ply".format(scan, k+1), mesh=meshio.Mesh(points=finalClusters[k], cells = []), binary=False)
+        meshio.write(writeFile.format(k+1), mesh=meshio.Mesh(points=finalClusters[k], cells = []), binary=False)
 
 #functions used in getPlane
 def objectiveFunction(center, *args):
@@ -180,14 +178,14 @@ def getPlane(finalClusters, myPath, numEl, readFile, writeFile, diameter):
     input:
         finalClusters: clusters (list of lists:number of lists=numEl; each with size (N, 3), N is number of detected points in the cluster)
         myPath: path to the folder where the clusters files are (pathlib.WindowsPath)
-        numEl: number of stickers (int)
+        numEl: number of points (scanned reference points or optode points) (int)
         readFile: name of the file to read the cluster points from (string with {} to be replaced by the number of the cluster)
         writeFile: name of the file to write in the normals of fitted planes (string with {} to be replaced by the number of the cluster)
-        diameter: diameter of the circle to fit to the cluster (int)
+        diameter: diameter of the circle to fit to the cluster [mm] (int)
     no direct output:   
         written files with the normals of the fitted planes (numEl different files with 2 lists: normal (1, 4) and center of the plane (1, 3))
     '''
-    #get cennter of each cluster
+    #get center of each cluster
     center=np.zeros((len(finalClusters) , 3))
     for j in range(len(finalClusters)):
         center[j, :] = fitCircleToPoints(finalClusters[j], diameter)
@@ -196,7 +194,7 @@ def getPlane(finalClusters, myPath, numEl, readFile, writeFile, diameter):
     centerProj=np.zeros((numEl, 3))
     for i in range(numEl):
         #get points in cluster
-        fullPath=os.path.join(myPath, readFile.format(i+1))#"scan{}\pointsYellow{}.ply".format(scan, i+1))
+        fullPath=os.path.join(myPath, readFile.format(i+1))
 
         #get plane normal
         cloud = PyntCloud.from_file(fullPath)
@@ -208,7 +206,7 @@ def getPlane(finalClusters, myPath, numEl, readFile, writeFile, diameter):
         scdist=np.dot(center[i, :], normald[i, :3])+normald[i, 3]
         centerProj[i, :]=center[i, :]-scdist*normald[i, :3]
         #write normals and center points
-        f=open(writeFile.format(i+1), 'w', newline='')#'scan{}/normals(+d)Yellow{}.csv'.format(scan, i+1), 'w', newline='')
+        f=open(writeFile.format(i+1), 'w', newline='')
         writer = csv.writer(f)
         writer.writerow((normald[i, :], centerProj[i, :]))
         f.close()
@@ -217,11 +215,11 @@ def writePointsNearPlane(numEl, readFile, readFile2, myPath, distance):
     '''
     #rewrite files containing points in clusters, within distance of plane (cut outliers)
     input: 
-        numEl: number of stickers (int)
+        numEl: number of points (scanned reference points or optode points) (int)
         readFile: name of the file to read the cluster points from (string with {} to be replaced by the number of the cluster)
         readFile2: name of the file to read the normals and center of the plane (string with {} to be replaced by the number of the cluster)
         myPath: path to the folder where the clusters files are (pathlib.WindowsPath)
-        distance: distance from plane to keep points (int)
+        distance: distance from plane to keep points [mm] (int)
     no direct output:
         written files with the points in the clusters (numEl different files with size (N, 3), N is number of detected points in the cluster)
     '''
@@ -232,11 +230,11 @@ def writePointsNearPlane(numEl, readFile, readFile2, myPath, distance):
 
     for num in range(numEl):
         #get points in cluster
-        fullPath=os.path.join(myPath,readFile.format(num+1))#"scan{}\pointsYellow{}.ply".format(scan, num+1))
+        fullPath=os.path.join(myPath,readFile.format(num+1))
         cloud = PyntCloud.from_file(fullPath)
         points[num]=cloud.points.values
         #get plane normal
-        data = (readFile2.format(num+1))#('scan{}/normals(+d)Yellow{}.csv'.format(scan, num+1))
+        data = (readFile2.format(num+1))
         with open(data, 'r') as csvfile:
             datareader = csv.reader(csvfile)
             #get normal of plane
@@ -251,23 +249,22 @@ def writePointsNearPlane(numEl, readFile, readFile2, myPath, distance):
             if dist[num][i]<distance:
                 closePoints[num].append(points[num][i, :])
         #rewrite file
-        meshio.write(readFile.format(num+1), mesh=meshio.Mesh(points=closePoints[num], cells = []), binary=False)#"scan{}/pointsBlue{}.ply".format(scan, num+1), mesh=meshio.Mesh(points=closePoints[num], cells = []), binary=False)
-
+        meshio.write(readFile.format(num+1), mesh=meshio.Mesh(points=closePoints[num], cells = []), binary=False)
 
 def subtractOptode(readFile, numEl, sizeOpt):
     '''
     #subtract optode size from each cluster to get point on head surface
     input: 
         readFile: name of the file to read the plane normals from (string with {} to be replaced by the number of the cluster)
-        numEl: number of blue stickers (int)
-        sizeOpt: size of the optode to subtract from the sticker center in direction towards the head [mm] (int)
+        numEl: number of points (scanned reference points or optode points) (int)
+        sizeOpt: size of the optode to subtract from the cluster center in direction towards the head [mm] (int)
     output:
         out: array with the points on the head surface (numEl, 3)
     '''
     out=np.zeros((numEl, 3))
     #get normal and center of plane
     for num in range(numEl):
-        data = (readFile.format(num+1))#('scan{}/normals(+d)Yellow{}.csv'.format(scan, num+1))
+        data = (readFile.format(num+1))
         with open(data, 'r') as csvfile:
             datareader = csv.reader(csvfile)
             for row in datareader:
@@ -283,68 +280,31 @@ def subtractOptode(readFile, numEl, sizeOpt):
         out[num, :]=centerProj-v1*sizeOpt
     return out
 
-def subtractCapThickness(outBlue, numEl, readFile,  order, capThickness, subtract=["Cz", "Iz", "Rpa", "Lpa"]):
+def orderReferencePoints6(numScannedReference, outReference, twoPoints):
     '''
-    #subtract sticekrs where are placed on the cap(usually Cz, Iz, Rpa and Lpa)
-    input:
-        outBlue: array with the points on the head surface (numEl, 3)
-        numEl: number of stickers (int)
-        readFile: name of the file to read the plane normals from (string with {} to be replaced by the number of the cluster)
-        order: order of the blue points in outBlue (5, 3) #example: [4, 0, 2, 3, 1]->[Nz, Iz, Rpa, Lpa, Cz] Nz is in the 4th line in outBlue...
-        capThickness: thickness of the cap [mm] (int)
-        subtract: list of labels of the stickers to subtract (list of strings)
-    output:
-        outBlueNew: array with the points including subtracted cap thickness (numEl, 3)
-
-    '''
-    allLabelsBlue=["Nz", "Iz", "Rpa", "Lpa", "Cz"]
-    outBlueNew=np.zeros((numEl, 3))
-    #get normal of plane and cetner of cluster
-    for num, label in enumerate(allLabelsBlue):
-        if label in subtract:
-            data = (readFile.format(num+1))#('scan{}/normals(+d)Yellow{}.csv'.format(scan, num+1))
-            with open(data, 'r') as csvfile:
-                datareader = csv.reader(csvfile)
-                for row in datareader:
-                    normal, centerProj=row
-            normal=np.array(normal[1:-1].split(), dtype=float)
-            centerProj=np.array(centerProj[1:-1].split(), dtype=float)
-            #depending on the position of the plane, reorient the vector
-            if normal[3]>0:
-                v1=np.array([-normal[0], -normal[1], -normal[2]])
-            else:
-                v1=np.array([normal[0], normal[1], normal[2]])
-            #subtract cap thickness from center of cluster
-            outBlueNew[num, :]=centerProj-v1*capThickness
-        else:
-            outBlueNew[num, :]=outBlue[order[num], :]
-    return outBlueNew
-
-def orderReferencePoints6(numElBlue, outBlue, twoPoints):
-    '''
-    #for this function to work, 6 blue stickers are needed
+    #for this function to work, 6 reference stickers are needed
     #additional sticker is placed next to either "Nz" or "Iz"; it needs to be further away from Cz as "Nz" or "Iz";
     #the sticker needs to be approximately on the same plane with Cz, Iz and Nz 
-    #closest points are Nz or Iz and the sticker next to it, dependes on where you put two stickers together
+    #the closest points are Nz or Iz and the sticker next to it, dependes on where you put two stickers together
     #opposite is the other one Iz or Nz
     #Cz is the point closest to the plane, defined by the 3 previous points
     #of the 2 points closest together, Nz or Iz is the one closest to Cz (we have to put the stickers on the cap that way)
     #Determining Rpa and Lra from cross product of known points
 
     input:
-        numElBlue: number of stickers (int)=6
-        outBlue: array with the blue points (numEl, 3)
+        numScannedReference: number of scanned reference points (int)=6
+        outReference: array with the scanned reference points (numEl, 3)
         two points: label where there are two stickers together (string "Nz" or "Iz")
     output:
-        orderedBlue: array with the ordered blue points (numEl, 3)->order: Nz, Iz, Rpa, Lpa, Cz
-        order: order of the blue points in outBlue (1, 5) #example: [4, 0, 2, 3, 5]->[Nz, Iz, Rpa, Lpa, Cz] Nz is in the 4th line in outBlue...
+        orderedReference: array with the ordered scanned reference points (numEl, 3)->order: Nz, Iz, Rpa, Lpa, Cz
+        order: order of the scanned reference points in outReference (1, 5) #example: [4, 0, 2, 3, 5]->[Nz, Iz, Rpa, Lpa, Cz] Nz is in the 4th line in outReference...
     '''
     #find 2 closest points
-    distRef=np.zeros((numElBlue, numElBlue))
-    for i in range(numElBlue):
+    distRef=np.zeros((numScannedReference, numScannedReference))
+    for i in range(numScannedReference):
         step=0
-        for j in range(numElBlue):
-            distRef[i, j]=np.sqrt((outBlue[i, 0]-outBlue[j, 0])**2+(outBlue[i, 1]-outBlue[j, 1])**2+(outBlue[i, 2]-outBlue[j, 2])**2)
+        for j in range(numScannedReference):
+            distRef[i, j]=np.sqrt((outReference[i, 0]-outReference[j, 0])**2+(outReference[i, 1]-outReference[j, 1])**2+(outReference[i, 2]-outReference[j, 2])**2)
     close1=np.where(distRef==np.min(distRef[np.nonzero(distRef[:, :])]))[0][0]
     close2=np.where(distRef==np.min(distRef[np.nonzero(distRef[:, :])]))[0][1]
 
@@ -352,35 +312,35 @@ def orderReferencePoints6(numElBlue, outBlue, twoPoints):
     idx0=np.zeros(4)
     dist2=np.zeros(4)
     step=0
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=close1 and i!=close2:
             idx0[step]=i
-            dist2[step]=np.sqrt((outBlue[i, 0]-outBlue[close1, 0])**2+(outBlue[i, 1]-outBlue[close1, 1])**2+(outBlue[i, 2]-outBlue[close1, 2])**2)
+            dist2[step]=np.sqrt((outReference[i, 0]-outReference[close1, 0])**2+(outReference[i, 1]-outReference[close1, 1])**2+(outReference[i, 2]-outReference[close1, 2])**2)
             step=step+1
     opposite=int(idx0[np.argmax(dist2)])
 
     #Define plane with close1, 2, opposite -> Cz is the point closest to this plane
-    v1 = outBlue[close1]-outBlue[opposite]
-    v2 = outBlue[close2]-outBlue[opposite]
+    v1 = outReference[close1]-outReference[opposite]
+    v2 = outReference[close2]-outReference[opposite]
     cp = np.cross(v1, v2)
-    d = np.dot(cp, outBlue[close1])
+    d = np.dot(cp, outReference[close1])
     idx1=np.zeros(3)
     distance2Plane=np.zeros((3))
     step=0
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=close1 and i!= close2 and i!=opposite:
             idx1[step]=i
-            distance2Plane[step]=np.abs(cp[0]*outBlue[i, 0]+cp[1]*outBlue[i, 1]+cp[2]*outBlue[i, 2]+d)/np.sqrt(cp[0]**2+cp[1]**2+cp[2]**2)
+            distance2Plane[step]=np.abs(cp[0]*outReference[i, 0]+cp[1]*outReference[i, 1]+cp[2]*outReference[i, 2]+d)/np.sqrt(cp[0]**2+cp[1]**2+cp[2]**2)
             step+=1
     Cz=int(idx1[np.argmin(distance2Plane)])
 
     #Nz or Iz is the one of Nz1 and Nz2 closest to Cz, Iz or Nz is opposite
     if twoPoints=="Nz":
         distNz=np.zeros(2)
-        distNz[0]=np.sqrt((outBlue[Cz, 0]-outBlue[close1, 0])**2+(outBlue[Cz, 1]-outBlue[close1, 1])**2+(outBlue[Cz, 2]-outBlue[close1, 2])**2)
-        distNz[1]=np.sqrt((outBlue[Cz, 0]-outBlue[close2, 0])**2+(outBlue[Cz, 1]-outBlue[close2, 1])**2+(outBlue[Cz, 2]-outBlue[close2, 2])**2)
+        distNz[0]=np.sqrt((outReference[Cz, 0]-outReference[close1, 0])**2+(outReference[Cz, 1]-outReference[close1, 1])**2+(outReference[Cz, 2]-outReference[close1, 2])**2)
+        distNz[1]=np.sqrt((outReference[Cz, 0]-outReference[close2, 0])**2+(outReference[Cz, 1]-outReference[close2, 1])**2+(outReference[Cz, 2]-outReference[close2, 2])**2)
         if np.argmin(distNz)==0:
             Nz=close1
         else:
@@ -388,8 +348,8 @@ def orderReferencePoints6(numElBlue, outBlue, twoPoints):
         Iz=opposite
     elif twoPoints=="Iz":
         distIz=np.zeros(2)
-        distIz[0]=np.sqrt((outBlue[Cz, 0]-outBlue[close1, 0])**2+(outBlue[Cz, 1]-outBlue[close1, 1])**2+(outBlue[Cz, 2]-outBlue[close1, 2])**2)
-        distIz[1]=np.sqrt((outBlue[Cz, 0]-outBlue[close2, 0])**2+(outBlue[Cz, 1]-outBlue[close2, 1])**2+(outBlue[Cz, 2]-outBlue[close2, 2])**2)
+        distIz[0]=np.sqrt((outReference[Cz, 0]-outReference[close1, 0])**2+(outReference[Cz, 1]-outReference[close1, 1])**2+(outReference[Cz, 2]-outReference[close1, 2])**2)
+        distIz[1]=np.sqrt((outReference[Cz, 0]-outReference[close2, 0])**2+(outReference[Cz, 1]-outReference[close2, 1])**2+(outReference[Cz, 2]-outReference[close2, 2])**2)
         if np.argmin(distIz)==0:
             Iz=close1
         else:
@@ -399,56 +359,57 @@ def orderReferencePoints6(numElBlue, outBlue, twoPoints):
     #Determining Rpa and Lra from cross product of known points
     idx2=np.zeros(2)
     step=0
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=close1 and i!= close2 and i!=opposite and i!=Cz:
             idx2[step]=i
             step+=1
-    cr=np.cross(outBlue[Nz, :]-outBlue[Cz, :], outBlue[Iz, :]-outBlue[Cz, :])
+    cr=np.cross(outReference[Nz, :]-outReference[Cz, :], outReference[Iz, :]-outReference[Cz, :])
     cr=cr/np.linalg.norm(cr)
     #if the result of the dot product is positive, the first point is Lpa, otherwise it is Rpa
-    if np.dot(cr, outBlue[int(idx2[0]), :])>0:
+    if np.dot(cr, outReference[int(idx2[0]), :])>0:
         Lpa=int(idx2[0])
         Rpa=int(idx2[1])
     else:
         Lpa=int(idx2[1])
         Rpa=int(idx2[0])
 
+    orderedReference=np.zeros((5, 3))
+    orderedReference[0, :]=outReference[Nz, :]
+    orderedReference[1, :]=outReference[Iz, :]
+    orderedReference[2, :]=outReference[Rpa, :]
+    orderedReference[3, :]=outReference[Lpa, :]
+    orderedReference[4, :]=outReference[Cz, :]
 
-    orderedBlue=np.zeros((5, 3))
-    orderedBlue[0, :]=outBlue[Nz, :]
-    orderedBlue[1, :]=outBlue[Iz, :]
-    orderedBlue[2, :]=outBlue[Rpa, :]
-    orderedBlue[3, :]=outBlue[Lpa, :]
-    orderedBlue[4, :]=outBlue[Cz, :]
+    return  orderedReference, np.array([Nz, Iz, Rpa, Lpa, Cz])
 
-    return  orderedBlue, np.array([Nz, Iz, Rpa, Lpa, Cz])
-
-def orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow):
+#used for 5 scanned reference points, doesn't work for all montages;
+#not used in the script
+def orderReferencePoints(numScannedOptodes, numScannedReference, outReference, outOptodes):
     '''
-    #for this function to work, 5 blue stickers are needed;
-    #it works only if the mean distance to the 5 closest yellow points from every blue point is smallest for Iz
-    #Cz is the point with lowest std of distances to other blue points
-    #Iz is the point with closest mean distance to 5 closest optode locations
+    #for this function to work, 5 reference stickers are needed;
+    #it works only if the mean distance to the 5 closest scanned optode points from every reference point is smallest for Iz
+    #Cz is the point with lowest std of distances to other scanned reference points
+    #Iz is the point with closest mean distance to 5 closest scanned optode points
     #Nz is the point with largest distance to Iz
     #Determining Rpa and Lra from cross product of known points
 
     input:
-        numElYellow: number of yellow stickers
-        numElBlue: number of blue points=5
-        outBlue: points from blue stickers (5, 3)
-        outYellow: points from yellow stickers (numElYellow, 3)
+        numScannedOptodes: number of scanned optodes points
+        numScannedReference: number of scanned reference points=5
+        outReference: scanned reference points (5, 3)
+        outOptodes: scanned optode points (numScannedOptodes, 3)
     output:
-        orderedBlue: ordered points from blue stickers (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
+        orderedReference: ordered points from scanned reference points (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
     '''
-    #Cz is the point with lowest std of distances to other blue points
-    distRef=np.zeros((numElBlue, numElBlue))
-    stds=np.zeros(numElBlue)
+    #Cz is the point with lowest std of distances to other scanned reference points
+    distRef=np.zeros((numScannedReference, numScannedReference))
+    stds=np.zeros(numScannedReference)
     arr=np.zeros(4)
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         step=0
-        for j in range(numElBlue):
-            distRef[i, j]=np.sqrt((outBlue[i, 0]-outBlue[j, 0])**2+(outBlue[i, 1]-outBlue[j, 1])**2+(outBlue[i, 2]-outBlue[j, 2])**2)
+        for j in range(numScannedReference):
+            distRef[i, j]=np.sqrt((outReference[i, 0]-outReference[j, 0])**2+(outReference[i, 1]-outReference[j, 1])**2+(outReference[i, 2]-outReference[j, 2])**2)
             if i!=j:
                 arr[step]=distRef[i, j]
                 step+=1
@@ -456,20 +417,20 @@ def orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow):
         stds[i]=np.std(arr[:])
     Cz=np.argmin(stds)
 
-    #Iz is the point with closest mean distance to 5 closest optode locations
+    #Iz is the point with closest mean distance to 5 closest scanned optodes points
     idx0=np.zeros(4)
     step=0
-    distOther=np.zeros((4, numElYellow))
+    distOther=np.zeros((4, numScannedOptodes))
     means=np.zeros(4)
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=Cz:
             idx0[step]=i
-            #calculate distance to all yellow points
-            for j in range(numElYellow):
-                distOther[step, j]=np.sqrt((outBlue[i, 0]-outYellow[j, 0])**2+(outBlue[i, 1]-outYellow[j, 1])**2+(outBlue[i, 2]-outYellow[j, 2])**2)
+            #calculate distance to all scanned optodes points
+            for j in range(numScannedOptodes):
+                distOther[step, j]=np.sqrt((outReference[i, 0]-outOptodes[j, 0])**2+(outReference[i, 1]-outOptodes[j, 1])**2+(outReference[i, 2]-outOptodes[j, 2])**2)
             distOther[step, :]=np.sort(distOther[step, :])
-            #calculate mean distance to 5 closest yellow points
+            #calculate mean distance to 5 closest scanned optodes points
             means[step]=np.mean(distOther[step, :5])
             step+=1
     Iz=int(idx0[np.argmin(means)])
@@ -478,131 +439,87 @@ def orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow):
     idx1=np.zeros(3)
     step=0
     distRef2=np.zeros(3)
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=Iz and i!=Cz:
             idx1[step]=i
             #distance to Iz
-            distRef2[step]=np.sqrt((outBlue[i, 0]-outBlue[Iz, 0])**2+(outBlue[i, 1]-outBlue[Iz, 1])**2+(outBlue[i, 2]-outBlue[Iz, 2])**2)
+            distRef2[step]=np.sqrt((outReference[i, 0]-outReference[Iz, 0])**2+(outReference[i, 1]-outReference[Iz, 1])**2+(outReference[i, 2]-outReference[Iz, 2])**2)
             step+=1
     Nz=int(idx1[np.argmax(distRef2)])
 
     #Determining Rpa and Lra from cross product of known points
     idx2=np.zeros(2)
     step=0
-    for i in range(numElBlue):
+    for i in range(numScannedReference):
         #use only undetermined points
         if i!=Nz and i!=Iz and i!=Cz:
             idx2[step]=i
             step+=1
-    cr=np.cross(outBlue[Nz, :]-outBlue[Cz, :], outBlue[Iz, :]-outBlue[Cz, :])
+    cr=np.cross(outReference[Nz, :]-outReference[Cz, :], outReference[Iz, :]-outReference[Cz, :])
     cr=cr/np.linalg.norm(cr)
     #if the result of the dot product is positive, the first point is Lpa, otherwise it is Rpa
-    if np.dot(cr, outBlue[int(idx2[0]), :])>0:
+    if np.dot(cr, outReference[int(idx2[0]), :])>0:
         Lpa=int(idx2[0])
         Rpa=int(idx2[1])
     else:
         Lpa=int(idx2[1])
         Rpa=int(idx2[0])
 
+    orderedReference=np.zeros((5, 3))
+    orderedReference[0, :]=outReference[Nz, :]
+    orderedReference[1, :]=outReference[Iz, :]
+    orderedReference[2, :]=outReference[Rpa, :]
+    orderedReference[3, :]=outReference[Lpa, :]
+    orderedReference[4, :]=outReference[Cz, :]
 
-    orderedBlue=np.zeros((5, 3))
-    orderedBlue[0, :]=outBlue[Nz, :]
-    orderedBlue[1, :]=outBlue[Iz, :]
-    orderedBlue[2, :]=outBlue[Rpa, :]
-    orderedBlue[3, :]=outBlue[Lpa, :]
-    orderedBlue[4, :]=outBlue[Cz, :]
-
-    return  orderedBlue, np.array([Nz, Iz, Rpa, Lpa, Cz])
+    return  orderedReference, np.array([Nz, Iz, Rpa, Lpa, Cz])
     
-
-def alignPoints(numElYellow,  orderedBlue, outYellow, refPoints, use):
-    '''
-    input:
-        numElYellow: number of yellow stickers
-        orderedBlue: ordered points from blue stickers (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
-        outYellow: points from yellow stickers (numElYellow, 3)
-        refPoints: reference points for alignment (5, 3)
-        use: points corresponding to out (numElYellow, 3)
-    output:
-        trOrderedYellow: transformed ordered points from yellow stickers: to fit reference points (numElYellow, 3)->order is determined by points in use input
-        trOrderedBlue: transformedordered points from blue stickers: to fit reference points (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
-        errLabels: error of each point to closest point in use input(1, numElYellow)->order is determined by points in use input   
-    '''
-    #align points to reference points
-    myR, myT = rigidTransform3D(orderedBlue.T, refPoints.T)
-    #transform blue and yellow points
-    trOrderedBlue=myR@orderedBlue.T+myT
-    trOrderedBlue=trOrderedBlue.T
-    trOrderedYellow=myR@outYellow.T+myT
-    trOrderedYellow=trOrderedYellow.T
-
-    err=np.zeros((numElYellow, numElYellow))
-    err2=np.zeros((numElYellow, 2))
-    #calculate distance to all yellow points from use input
-    for i in range(numElYellow):
-        for j in range(numElYellow):
-            err[i, j]=np.sqrt((trOrderedYellow[i, 0]-use[j, 0])**2+(trOrderedYellow[i, 1]-use[j, 1])**2+(trOrderedYellow[i, 2]-use[j, 2])**2)
-        #find the closest point and index of the point it is closest to
-        err2[i, 0]=min(err[i, :])
-        err2[i, 1]=np.argmin(err[i, :])
-    #check if each point is closest to a different point
-    if len(err2[:, 1]) != len(set(err2[:, 1])):
-        print('Error: some points are closest to the same point')
-    #same order of points as in bestScan
-    orderedTrOut=np.zeros_like(trOrderedYellow)
-    errLabels=np.zeros(numElYellow)
-    for i in range(numElYellow):
-        orderedTrOut[i, :]=trOrderedYellow[np.where(err2[:, 1]==i), :]
-        errLabels[i]=err2[np.where(err2[:, 1]==i), 0]
-
-    return trOrderedYellow, trOrderedBlue, errLabels
-
-def writePointsTxt(numSor, numDet,  orderedBlue, outYellow, readFile, writeFile):
+def writePointsTxt(numSor, numDet, orderedReference, outOptodes, readFile, writeFile):
     '''
     input:
         numSor: number of sources (int)
         numDet: number of detectors (int)
-        orderedBlue: ordered points from blue stickers (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
-        outYellow: points from yellow stickers (numElYellow, 3)
-        readFile: name of the file to read the coordinates to align to = Standard_Optodes.txt file from the used montage; reference points need to be labeled O01-O05 in order Nz, Iz, Rpa, Lpa, Cz (string)
+        orderedReference: ordered scanned reference points (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
+        outOptodes: scanned optodes points  (numScannedOptodes, 3)
+        readFile: name of the file to read the coordinates to align to = Standard_Optodes.txt file from the used montage; montage reference points need to be labeled O01-O05 in order Nz, Iz, Rpa, Lpa, Cz (string)
         filename: name of the file to write to (string)
     output:
-        orderedTrOut: transformed ordered points from yellow stickers: to fit reference points (numElYellow, 3)->order is determined by points in use input
-        orderedTrOutBlue: transformedordered points from blue stickers: to fit reference points (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
-        errLabels: error of each point to closest point in use input(1, numElYellow)->order is determined by points in use input
+        orderedOptodes:  ordered scanned optodes points (numScannedOptodes, 3)->order is determined by points in Standard_Optodes.txt (readFile input)
+        orderedOutReference: ordered scanned reference points (5, 3)->order: Nz, Iz, Rpa, Lpa, Cz
+        errLabels: error of each point to closest point in readFile input(1, numScannedOptodes)->order is determined by points in readFile input (Standard_Optodes.txt)
 
     example: 
-        orderedYellow, orderedBlue, errLabels=writePointsTxt(31, 30, orderedBlue, outYellow, "Standard_Optodes.txt", "writeFile.txt")
+        orderedOptodes, orderedReference, errLabels=writePointsTxt(31, 30, orderedReference, outOptodes, "Standard_Optodes.txt", "writeFile.txt")
     '''
     #read .txt file
     content=np.loadtxt(readFile, dtype='str', delimiter=',')
-    #reference label in input file
+    #montage reference labels in input file
     labelsO=["O01", "O02", "O03", "O04", "O05"]
-    #define reference and use points
-    refPoints=np.zeros((5, 3))
+    #define montage reference and montage optode points
+    montageRefPoints=np.zeros((5, 3))
     for i in range(5):
-        refPoints[i, :]=np.array(content[np.where(content[:, 0]==labelsO[i]), 1:], dtype='float')
-    numElYellow=numSor+numDet
-    use=np.zeros((numSor+numDet, 3))
-    for i in range(numSor+numDet):
-        use[i, :]=np.array(content[i, 1:], dtype='float')
+        montageRefPoints[i, :]=np.array(content[np.where(content[:, 0]==labelsO[i]), 1:], dtype='float')
+    numScannedOptodes=numSor+numDet
+    montageOptodes=np.zeros((numScannedOptodes, 3))
+    for i in range(numScannedOptodes):
+        montageOptodes[i, :]=np.array(content[i, 1:], dtype='float')
     #define labels
     labelsRef=["Nz", "Iz", "Rpa", "Lpa", "Cz"]
 
-    #get affine transformation from reference points to blue points
-    trn = affineFit(refPoints, orderedBlue)
-    #use transformations to transform use points
-    trUse=trn.Transform(use.T)
-    trUse=np.array(trUse).T
+    #get affine transformation from scanned reference points to montage reference points
+    trn = affineFit(montageRefPoints, orderedReference)
+    #use transformations to transform montageOptodes
+    trMontageOptodes=trn.Transform(montageOptodes.T)
+    trMontageOptodes=np.array(trMontageOptodes).T
     #use icp for better alignment so the corresponding points are found
-    trUse2, _ = icp(outYellow, trUse)
-    #calculate error to find the correspoinding points between locations and transposed use points
-    err=np.zeros((numElYellow, numElYellow))
-    err2=np.zeros((numElYellow, 2))
-    for i in range(numElYellow):
-        for j in range(numElYellow):
-            err[i, j]=np.sqrt((outYellow[i, 0]-trUse2[j, 0])**2+(outYellow[i, 1]-trUse2[j, 1])**2+(outYellow[i, 2]-trUse2[j, 2])**2)
+    trMontageOptodes2, _ = icp(outOptodes, trMontageOptodes)
+    #calculate error to find the correspoinding points between outOptodes (scanned optodes) and trMontageOptodes (transformed montage optodes)
+    err=np.zeros((numScannedOptodes, numScannedOptodes))
+    err2=np.zeros((numScannedOptodes, 2))
+    for i in range(numScannedOptodes):
+        for j in range(numScannedOptodes):
+            err[i, j]=np.sqrt((outOptodes[i, 0]-trMontageOptodes2[j, 0])**2+(outOptodes[i, 1]-trMontageOptodes2[j, 1])**2+(outOptodes[i, 2]-trMontageOptodes2[j, 2])**2)
         err2[i, 0]=min(err[i, :])
         err2[i, 1]=np.argmin(err[i, :])
 
@@ -610,59 +527,57 @@ def writePointsTxt(numSor, numDet,  orderedBlue, outYellow, readFile, writeFile)
     if len(err2[:, 1]) != len(set(err2[:, 1])):
         print('Error: some points are closest to the same point')
         print(len(err2[:, 1]) , len(set(err2[:, 1])))
-    orderedTrOut=np.zeros_like(outYellow)
+    orderedOptodes=np.zeros_like(outOptodes)
     #same order of points as Standard_Optodes.txt
-    errLabels=np.zeros(numElYellow)
-    for i in range(numElYellow):
-        orderedTrOut[i, :]=outYellow[np.where(err2[:, 1]==i), :]
+    errLabels=np.zeros(numScannedOptodes)
+    for i in range(numScannedOptodes):
+        orderedOptodes[i, :]=outOptodes[np.where(err2[:, 1]==i), :]
         errLabels[i]=err2[np.where(err2[:, 1]==i), 0]
     #write in txt file
     with open(writeFile, 'w') as f:
         for i in range(5):
-            f.write(labelsRef[i]+',{}, {}, {}'.format(orderedBlue[i, 0], orderedBlue[i, 1], orderedBlue[i, 2]))
+            f.write(labelsRef[i]+',{}, {}, {}'.format(orderedReference[i, 0], orderedReference[i, 1], orderedReference[i, 2]))
             f.write('\n')
-        for i in range(numElYellow):
-            f.write(content[i, 0]+',{}, {}, {}'.format(orderedTrOut[i, 0], orderedTrOut[i, 1], orderedTrOut[i, 2]))
+        for i in range(numScannedOptodes):
+            f.write(content[i, 0]+',{}, {}, {}'.format(orderedOptodes[i, 0], orderedOptodes[i, 1], orderedOptodes[i, 2]))
             f.write('\n')
-    return orderedTrOut, orderedBlue, errLabels
+    return orderedOptodes, orderedReference, errLabels
 
-def processOne(readFileScan, readFileOptodes, readFileClustersBlue, readFileClustersYellow, readFilePlaneBlue, readFilePlaneYellow, writeFile, masks, numSor, numDet, numElYellow, numElBlue, 
-               radius, radiusBlue, myPath, optSizeYellow, optSizeBlue, distance2Plane, twoPoints, printErr=True, plot=False, idxArr=[], incorrectRecognition=False, splitFirst=False):
+def processOne(readFileScan, readFileOptodes, readFileClustersReference, readFileClustersOptode, readFilePlaneReference, readFilePlaneOptode, writeFile, masks, numSor, numDet, numScannedOptodes, numScannedReference, 
+               radiusOptodes, radiusReference, myPath, subtractOptodeSize, subtractReferenceSize, distance2Plane, twoPoints, printErr=False, plot=True):
     '''
     input:
         readFileScan: scan file (string)
-        readFileOptodes: optodes file (string)
-        readFileClustersBlue: clusters file for blue stickers (string)
-        readFileClustersYellow: clusters file for yellow stickers (string)
-        readFilePlaneBlue: plane file for blue stickers (string)
-        readFilePlaneYellow: plane file for yellow stickers (string)
+        readFileOptodes: optodes file Standard_Optodes.txt (string)
+        readFileClustersReference: clusters file for scanned reference points (string)
+        readFileClustersOptode: clusters file for scanned optodes (string)
+        readFilePlaneReference: plane file for scanned reference points (string)
+        readFilePlaneOptode: plane file for scanned optodes(string)
         writeFile: name of the file to write to (string)
-        masks: masks for yellow and blue stickers (list of 12 floats between 0 and 1)
+        masks: masks for stickers, used as reference points and on top of optodes (list of 12 floats between 0 and 1)
         numSor: number of sources (int)
         numDet: number of detectors (int)
-        numElYellow: number of yellow stickers (int)
-        numElBlue: number of blue stickers (int)
-        radius: size of the circle to fit to the yellow stickers (float)
-        radiusBlue: size of the circle fit to the blue stickers (float)
+        numScannedOptodes: number of scanned optodes points (int)
+        numScannedReference: number of scanned reference points (int)
+        radiusOptodes: size of the circle to fit to the optode clusters [mm] (float)
+        radiusReference: size of the circle fit to the reference clusters [mm] (float)
         myPath: path to the folder containing the files (WindowsPath)
-        optSizeYellow: size to subtract from the yellow stickers to get wanted point (float)
-        optSizeBlue: size to subtract from the blue stickers to get wanted point (float)
-        distance2Plane: distance from fitted plane to keep points in clusters (float)
+        subtractOptodeSize: size to subtract from the optode cluster to get wanted point on the scalp [mm] (float)
+        subtractReferenceSize: size to subtract from the reference cluster to get wanted point [mm] (float)
+        distance2Plane: distance from fitted plane to keep points in clusters [mm] (float)
         two points: label where there are two stickers together (string "Nz" or "Iz")
-        printErr: print mean and std of distance from aligned points to points in Standard_Optodes.txt (bool)
+        printErr: print mean and std of distance from aligned points to points in Standard_Optodes.txt [mm] (bool)
         plot: plot the alignment (bool)
-        idxArr: if the ordere is set wrong by the algorithm, the user can input the order; order of the blue stickers (list of 5 ints)
-        incorrectRecognition: if the order is set wrong by the algorithm, the user can input the order; which scan is incorrect (bool)
-        splitFirst: if the 2 blue stickers are put too close, split first cluster (list)
+
     output:
-        orderedYellow: ordered yellow stickers (numElYellow, 3)
-        orderedBlue: ordered blue stickers (numElBlue, 3)
-        errLabels: error with same order as orderedYellow (1, numElYellow)
+        orderedOptodes: ordered scanned optode points - same order as in the input readFileOptodes (Standard_Optodes.txt) (numScannedOptodes, 3)
+        orderedReference: ordered scanned reference points (numScannedReference, 3)
+        errLabels: error with same order as in the input readFileOptodes (Standard_Optodes.txt) (1, numScannedOptodes)
 
     example:
-        orderedYellow, orderedBlue, errLabels=f.processAll("scan/scan2post"", "Standard_Optodes.txt", "scan/normals(+d)Blue{num}.csv".format(num={}), "scan/normals(+d)Yellow{num}.csv".format(num={}), 
-        "scan/normals(+d)Blue{num}.csv".format(num={}), "scan{scan}/normals(+d)Yellow{num}.csv".format(num={}), "coordsTest.txt", [0.14 0.035, 0.65, 0.35, 0.8, 0.3, 0.35, 0.1, 0.45, 0.35, 0.45, 0.15], 31, 30, 61, 6, 
-        6.5, 5, pathlib.Path().resolve(), 22.6, 0, 2, "Iz", printErr=True, plot=False, idxArr=[], incorrectRecognition=False, splitFirst=False)
+        orderedOptodes, orderedReference, errLabels=f.processAll("scan/scan2post"", "Standard_Optodes.txt", "scan/pointsReference{num}.ply".format(num={}), "scan/pointsOptode{num}.ply".format(num={}), 
+        "scan/normals(+d)Reference{num}.csv".format(num={}), "scan/normals(+d)Optode{num}.csv".format(num={}), "coordsTest.txt", [0.14 0.035, 0.65, 0.35, 0.8, 0.3, 0.35, 0.1, 0.45, 0.35, 0.45, 0.15], 31, 30, 61, 6, 
+        6.5, 5, pathlib.Path().resolve(), 22.6, 0, 2, "Iz", printErr=True, plot=False)
     '''
     
     yHueCenter=masks[0]
@@ -682,262 +597,97 @@ def processOne(readFileScan, readFileOptodes, readFileClustersBlue, readFileClus
     #get vertex locations and colors
     vnew, vcolors_rgb, vcolors_hsv=preProcessing(readFileScan)
     #define mask
-    MaskYellow=(np.abs(vcolors_hsv[:,0] - yHueCenter) < yHueWidth) & (np.abs(vcolors_hsv[:,1] - ySatCenter) < ySatWidth) & (np.abs(vcolors_hsv[:,2] - yValueCenter) < yValueWidth)
-    MaskBlue=(np.abs(vcolors_hsv[:,0] - bHueCenter) < bHueWidth) & (np.abs(vcolors_hsv[:,1] - bSatCenter) < bSatWidth) & (np.abs(vcolors_hsv[:,2] - bValueCenter) < bValueWidth)
+    MaskOptodes=(np.abs(vcolors_hsv[:,0] - yHueCenter) < yHueWidth) & (np.abs(vcolors_hsv[:,1] - ySatCenter) < ySatWidth) & (np.abs(vcolors_hsv[:,2] - yValueCenter) < yValueWidth)
+    MaskReference=(np.abs(vcolors_hsv[:,0] - bHueCenter) < bHueWidth) & (np.abs(vcolors_hsv[:,1] - bSatCenter) < bSatWidth) & (np.abs(vcolors_hsv[:,2] - bValueCenter) < bValueWidth)
     #get points in mask
-    newPointsYellow=pointsiInMask(vnew, MaskYellow)
-    newPointsBlue=pointsiInMask(vnew, MaskBlue)
-    #if the recognition of the ordered points is incorrect, user should input the order of the reference points; this happens if another cluster had more detected points in the mask than reference stickers
-    if incorrectRecognition:
-        numElBlue=np.max(idxArr)+1
-        orderedBlue=np.zeros((5, 3))
+    newPointsOptodes=pointsiInMask(vnew, MaskOptodes)
+    newPointsReference=pointsiInMask(vnew, MaskReference)
     #get as many clusters as there are stickers
-    finalClustersYellow=finalClusters(newPointsYellow, eps=radius, minSamples=50, numEl=numElYellow)
-    finalClustersBlue=finalClusters(newPointsBlue, eps=radiusBlue, minSamples=50, numEl=numElBlue)
-    #if the 6th blue sticker was too close to another one and the clusters were merged, split the first cluster
-    if splitFirst:            
-        finalClustersBlue0=finalClusters(finalClustersBlue[0], eps=3, minSamples=50, numEl=2)
-        finalClustersBlue[5]=finalClustersBlue[4]
-        finalClustersBlue[4]=finalClustersBlue[3]
-        finalClustersBlue[3]=finalClustersBlue[2]
-        finalClustersBlue[2]=finalClustersBlue[1]
-        finalClustersBlue[1]=finalClustersBlue0[1]
-        finalClustersBlue[0]=finalClustersBlue0[0]
+    finalClustersOptodes=finalClusters(newPointsOptodes, eps=radiusOptodes, minSamples=50, numEl=numScannedOptodes)
+    finalClustersReference=finalClusters(newPointsReference, eps=radiusReference, minSamples=50, numEl=numScannedReference)
     #write points belonging to each cluster to a file
-    writePoints(finalClustersYellow, readFileClustersYellow)
-    writePoints(finalClustersBlue, readFileClustersBlue)
+    writePoints(finalClustersOptodes, readFileClustersOptode)
+    writePoints(finalClustersReference, readFileClustersReference)
     #fit a plane to each cluster
-    getPlane(finalClustersYellow, myPath, numElYellow, readFileClustersYellow, readFilePlaneYellow, diameter=2*radius)
-    getPlane(finalClustersBlue, myPath, numElBlue, readFileClustersBlue, readFilePlaneBlue, diameter=2*radius)
+    getPlane(finalClustersOptodes, myPath, numScannedOptodes, readFileClustersOptode, readFilePlaneOptode, diameter=2*radiusOptodes)
+    getPlane(finalClustersReference, myPath, numScannedReference, readFileClustersReference, readFilePlaneReference, diameter=2*radiusOptodes)
     #cut points too far from the plane and rewrite the points file
-    writePointsNearPlane(numElYellow, readFileClustersYellow, readFilePlaneYellow, myPath, distance2Plane)
-    writePointsNearPlane(numElBlue, readFileClustersBlue, readFilePlaneBlue, myPath, distance2Plane)
+    writePointsNearPlane(numScannedOptodes, readFileClustersOptode, readFilePlaneOptode, myPath, distance2Plane)
+    writePointsNearPlane(numScannedReference, readFileClustersReference, readFilePlaneReference, myPath, distance2Plane)
     #re-fit the plane
-    getPlane(finalClustersYellow, myPath, numElYellow, readFileClustersYellow, readFilePlaneYellow, diameter=2*radius)
-    getPlane(finalClustersBlue, myPath, numElBlue, readFileClustersBlue, readFilePlaneBlue,  diameter=2*radius)
+    getPlane(finalClustersOptodes, myPath, numScannedOptodes, readFileClustersOptode, readFilePlaneOptode, diameter=2*radiusOptodes)
+    getPlane(finalClustersReference, myPath, numScannedReference, readFileClustersReference, readFilePlaneReference,  diameter=2*radiusOptodes)
     #subtract optode size from each point to get a point on the surface of the head
-    outYellow=subtractOptode(readFilePlaneYellow, numElYellow, optSizeYellow)
-    outBlue=subtractOptode(readFilePlaneBlue, numElBlue, optSizeBlue)
-    #if the order is pre-defined, use it
-    if incorrectRecognition:
-        for i in range(5):
-            orderedBlue[i, :]=outBlue[idxArr[i], :]
-    else:
-        #order the blue points, use a different function for 6 blue stickers
-        #5 blue points function works for montages, where Iz has the lowest mean distance to closest 5 yellow points
-        if numElBlue==5:
-            orderedBlue, order=orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow)
-        elif numElBlue==6:
-            orderedBlue, order=orderReferencePoints6(numElBlue, outBlue, twoPoints)
-    #wrtie the final file and return ordered yellow points, ordered blue points and error to closest point in input use
-    orderedYellow, orderedBlue, errLabels=writePointsTxt(numSor, numDet, orderedBlue, outYellow, readFileOptodes, writeFile)
+    outOptodes=subtractOptode(readFilePlaneOptode, numScannedOptodes, subtractOptodeSize)
+    #subtractReferenceSize is set to 0, can be modified if needed
+    outReference=subtractOptode(readFilePlaneReference, numScannedReference, subtractReferenceSize)
+    #order the scanned reference points, use a different function for 6 reference stickers
+    #5 scanned reference points function works for montages, where Iz has the lowest mean distance to closest 5 scanned optode points
+    if numScannedReference==5:
+        orderedReference, order=orderReferencePoints(numScannedOptodes, numScannedReference, outReference, outOptodes)
+    elif numScannedReference==6:
+        orderedReference, order=orderReferencePoints6(numScannedReference, outReference, twoPoints)
+    #wrtie the final file and return ordered scanned optode points, ordered scanned reference points and error to closest point in input readFileOptodes (Standard_Optodes.txt)
+    orderedOptodes, orderedReference, errLabels=writePointsTxt(numSor, numDet, orderedReference, outOptodes, readFileOptodes, writeFile)
     #print mean and std of error
     if printErr==True:
         print(np.mean(errLabels[:]), np.std(errLabels[:]))
-    #plot the last alignment
+    #plot the alignment
     if plot==True:
-        #read .txt file to get reference and use points
+        #read .txt file
         content=np.loadtxt(readFileOptodes, dtype='str', delimiter=',')
-        #reference label in input file
+        #montage reference labels in input file
         labelsO=["O01", "O02", "O03", "O04", "O05"]
-        #define reference and use points
-        refPoints=np.zeros((5, 3))
+        #define montage reference and optode points
+        montageRefPoints=np.zeros((5, 3))
         for i in range(5):
-            refPoints[i, :]=np.array(content[np.where(content[:, 0]==labelsO[i]), 1:], dtype='float')
-        use=np.zeros((numSor+numDet, 3))
-        for i in range(numSor+numDet):
-            use[i, :]=np.array(content[i, 1:], dtype='float')
-        #get affine transfroamtion
-        trn = affineFit(refPoints, orderedBlue)
-        #use transformations to transform reference points and use points
-        trRefPoints=trn.Transform(refPoints.T)
-        trRefPoints=np.array(trRefPoints).T
-        trUse=trn.Transform(use.T)
-        trUse=np.array(trUse).T
+            montageRefPoints[i, :]=np.array(content[np.where(content[:, 0]==labelsO[i]), 1:], dtype='float')
+        numScannedOptodes=numSor+numDet
+        montageOptodes=np.zeros((numScannedOptodes, 3))
+        for i in range(numScannedOptodes):
+            montageOptodes[i, :]=np.array(content[i, 1:], dtype='float')
+        #define labels
+        labelsRef=["Nz", "Iz", "Rpa", "Lpa", "Cz"]
+
+        #get affine transformation from scanned reference points to montage reference points
+        trn = affineFit(montageRefPoints, orderedReference)
+        #use transformations to transform montageRefPoints points
+        trMontageRefPoints=trn.Transform(montageRefPoints.T)
+        trMontageRefPoints=np.array(trMontageRefPoints).T
+        #use transformations to transform montageOptodes points
+        trMontageOptodes=trn.Transform(montageOptodes.T)
+        trMontageOptodes=np.array(trMontageOptodes).T
         #use icp for better alignment so the corresponding points are found
-        trUse, _ = icp(outYellow, trUse)
+        trMontageOptodes2, _ = icp(outOptodes, trMontageOptodes)
         #plot alignment
         fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
-        for i in range(5):
-            ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
-            ax.scatter(orderedBlue[i, 0], orderedBlue[i, 1], orderedBlue[i, 2], s=10, color='g')
-
+        fig.suptitle('First alignment before and after affine transformations of the reference points', fontsize=16)
+        
+        ax.scatter(montageRefPoints[:, 0], montageRefPoints[:, 1], montageRefPoints[:, 2], s=10, color='r', label='unaligned montage reference points')
+        ax.scatter(orderedReference[:, 0], orderedReference[:, 1], orderedReference[:, 2], s=10, color='b', label='scanned reference points')
+        ax.legend()
+        
         ax=fig.add_subplot(1, 2, 2, projection="3d")
-        for i in range(5):
-            ax.scatter(trRefPoints[i, 0], trRefPoints[i, 1], trRefPoints[i, 2], s=10, color='b')
-            ax.scatter(orderedBlue[i, 0], orderedBlue[i, 1], orderedBlue[i, 2], s=10, color='r')
+        ax.scatter(trMontageRefPoints[:, 0], trMontageRefPoints[:, 1], trMontageRefPoints[:, 2], s=10, color='g', label='aligned montage reference points')
+        ax.scatter(orderedReference[:, 0], orderedReference[:, 1], orderedReference[:, 2], s=10, color='b', label='scanned reference points')
+        ax.legend() 
 
         fig = p.figure(figsize=(10, 10)); 
         ax = fig.add_subplot(1, 2, 1, projection="3d")
-        for i in range(numElYellow):
-            ax.scatter(use[i, 0], use[i, 1], use[i, 2], s=10, color='b')
-            ax.scatter(outYellow[i, 0], outYellow[i, 1], outYellow[i, 2], s=10, color='g')
+        fig.suptitle('Fine alignment before and after icp transformations of the optode points', fontsize=16)
+        ax.scatter(trMontageOptodes[:, 0], trMontageOptodes[:, 1], trMontageOptodes[:, 2], s=10, color='r', label='unaligned montage optode points')
+        ax.scatter(outOptodes[:, 0], outOptodes[:, 1], outOptodes[:, 2], s=10, color='b', label='scanned optode points')
+        ax.legend()
 
         ax=fig.add_subplot(1, 2, 2, projection="3d")
-        for i in range(numElYellow):
-            ax.scatter(trUse[i, 0], trUse[i, 1], trUse[i, 2], s=10, color='b')
-            ax.scatter(outYellow[i, 0], outYellow[i, 1], outYellow[i, 2], s=10, color='r')
+        ax.scatter(trMontageOptodes2[:, 0], trMontageOptodes2[:, 1], trMontageOptodes2[:, 2], s=10, color='g', label='aligned montage optode points')
+        ax.scatter(outOptodes[:, 0], outOptodes[:, 1], outOptodes[:, 2], s=10, color='b', label='scanned optode points')
+        ax.legend()
 
-    return orderedYellow, orderedBlue, errLabels
+    return orderedOptodes, orderedReference, errLabels
 
-def processAll(subject, masks, scans, bestScan, numElYellow, numElBlue, radius, radiusBlue, myPath, optSizeYellow, optSizeBlue, distance2Plane, twoPoints="Nz", 
-               printErr=True, plot=False, idxArr=[], incorrectRecognition=[], splitFirst=[]):
-    """
-    used for processing a serier of scans for one subject - aligning the scans to one of them
-    running script needs to be in a folder containing folders with subjects' names; each subject folder contains folders with scans numbered 0 to scans-1;
-    each scan folder contains a .obj and a .jpg file with the same name;
-
-    input:
-        subject: subject name (string)
-        masks: masks for yellow and blue stickers (list of 12 floats between 0 and 1)
-        scans: number of scans (int)
-        bestScan: best scan used for alignment of others, blue stickers are well seen (int)
-        numElYellow: number of yellow stickers (int)
-        numElBlue: number of blue stickers (int)
-        radius: size of the circle to fit to the yellow stickers (float)
-        radiusBlue: size of the circle fit to the blue stickers (list of #numElBlue floats)
-        myPath: path to the folder containing the files (WindowsPath)
-        optSizeYellow: size to subtract from the yellow stickers to get wanted point (float)
-        optSizeBlue: size to subtract from the blue stickers to get wanted point (float)
-        distance2Plane: distance from fitted plane to keep points in clusters (float)
-        two points: label where there are two stickers together (string "Nz" or "Iz")
-        printErr: print mean and std of error (bool)
-        plot: plot the last alignment (bool)
-        idxArr: if the ordere is set wrong by the algorithm, the user can input the order; order of the blue stickers (list of 5 ints)
-        incorrectRecognition: if the order is set wrong by the algorithm, the user can input the order; which scan is incorrect (list of ints)
-        splitFirst: if the 2 blue stickers are put too close, split first cluster (list)
-    output:
-        orderedYellow: transformed ordered yellow stickers to fit reference points = best scan blue points (numElYellow, 3, scans)
-        orderedBlue: transformed ordered blue stickers to fit reference points = best scan blue points (numElBlue, 3, scans)
-        errLabels: error with same order as orderedYellow (numElYellow, scans)
-
-    example: 
-        trOrderedYellow, trOrderedBlue, errLabels=processAll("Filip", [0.14 0.035, 0.65, 0.35, 0.8, 0.3, 0.35, 0.1, 0.45, 0.35, 0.45, 0.15], 8, 2, 61, 6, 
-        6.5, [5, 5, 5, 5, 5, 5, 5, 5], pathlib.Path().resolve(), 22.6, 0, 2, "Iz"
-    """
-
-    #color mask
-    yHueCenter=masks[0]
-    yHueWidth=masks[1]
-    ySatCenter=masks[2]
-    ySatWidth=masks[3]
-    yValueCenter=masks[4]
-    yValueWidth=masks[5]
-
-    bHueCenter=masks[6]
-    bHueWidth=masks[7]
-    bSatCenter=masks[8]
-    bSatWidth=masks[9]
-    bValueCenter=masks[10]
-    bValueWidth=masks[11]
-
-    trOrderedYellow=np.zeros((numElYellow, 3, scans))
-    trOrderedBlue=np.zeros((5, 3, scans))
-    errLabels=np.zeros((numElYellow, scans))
-    step=0
-    for scan in range(scans):
-        #first iteration goes through the best scan indicated by the input and is used as refence for other scans
-        if scan==0:
-            scan=bestScan
-        elif scan<=bestScan:
-            scan=scan-1
-        else:
-            scan=scan
-        #reset number of blue points
-        numElBlueAlt=numElBlue
-        #file to write and read clusters and planes; the second {} gets filled in in the function
-        readFilePlaneYellow=subject+"/scan{scan}/normals(+d)Yellow{num}.csv".format(scan=scan, num={})
-        readFilePlaneBlue=subject+"/scan{scan}/normals(+d)Blue{num}.csv".format(scan=scan, num={})
-        readFileClustersBlue=subject+"/scan{scan}/pointsBlue{num}.ply".format(scan=scan, num={})
-        readFileClustersYellow=subject+"/scan{scan}/pointsYellow{num}.ply".format(scan=scan, num={})
-        #get vertex locations and colors
-        vnew, vcolors_rgb, vcolors_hsv=preProcessing(subject+"/scan{}/scan{}post".format(scan, scan))
-        #define mask
-        MaskYellow=(np.abs(vcolors_hsv[:,0] - yHueCenter) < yHueWidth) & (np.abs(vcolors_hsv[:,1] - ySatCenter) < ySatWidth) & (np.abs(vcolors_hsv[:,2] - yValueCenter) < yValueWidth)
-        MaskBlue=(np.abs(vcolors_hsv[:,0] - bHueCenter) < bHueWidth) & (np.abs(vcolors_hsv[:,1] - bSatCenter) < bSatWidth) & (np.abs(vcolors_hsv[:,2] - bValueCenter) < bValueWidth)
-        #get points in mask
-        newPointsYellow=pointsiInMask(vnew, MaskYellow)
-        newPointsBlue=pointsiInMask(vnew, MaskBlue)
-        #if the recognition of the ordered points is incorrect, user should input which scan is wrong and the order of the blue points; this happened a couple times where another cluster had more detected points in the mask than reference points
-        if scan in incorrectRecognition:
-            numElBlueAlt=np.max(idxArr[step])+1
-            orderedBlue=np.zeros((5, 3))
-        #get as many clusters as there are stickers
-        finalClustersYellow=finalClusters(newPointsYellow, eps=radius, minSamples=50, numEl=numElYellow)
-        finalClustersBlue=finalClusters(newPointsBlue, eps=radiusBlue[scan], minSamples=50, numEl=numElBlueAlt)
-        #in 2 sets of scans, the 6th blue sticker was too close to another one and the clusters were merged
-        #6th sticker is used to determine one of the points, followed by the rest
-        if scan in splitFirst:            
-            finalClustersBlue0=finalClusters(finalClustersBlue[0], eps=3, minSamples=50, numEl=2)
-            finalClustersBlue[5]=finalClustersBlue[4]
-            finalClustersBlue[4]=finalClustersBlue[3]
-            finalClustersBlue[3]=finalClustersBlue[2]
-            finalClustersBlue[2]=finalClustersBlue[1]
-            finalClustersBlue[1]=finalClustersBlue0[1]
-            finalClustersBlue[0]=finalClustersBlue0[0]
-        #write points belonging to each cluster to a file
-        writePoints(finalClustersYellow, readFileClustersYellow)
-        writePoints(finalClustersBlue, readFileClustersBlue)
-        #fit a plane to each cluster
-        getPlane(finalClustersYellow, myPath, numElYellow, readFileClustersYellow, readFilePlaneYellow, diameter=2*radius)
-        getPlane(finalClustersBlue, myPath, numElBlueAlt, readFileClustersBlue, readFilePlaneBlue, diameter=2*radius)
-        #cut points too far from the plane and rewrite the points file
-        writePointsNearPlane(numElYellow, readFileClustersYellow, readFilePlaneYellow, myPath, distance2Plane)
-        writePointsNearPlane(numElBlueAlt, readFileClustersBlue, readFilePlaneBlue, myPath, distance2Plane)
-        #re-fit the plane
-        getPlane(finalClustersYellow, myPath, numElYellow, readFileClustersYellow, readFilePlaneYellow, diameter=2*radius)
-        getPlane(finalClustersBlue, myPath, numElBlueAlt, readFileClustersBlue, readFilePlaneBlue, diameter=2*radius)
-        #subtract optode size from each point to get a point on the surface of the head
-        outYellow=subtractOptode(readFilePlaneYellow, numElYellow, optSizeYellow)
-        outBlue=subtractOptode(readFilePlaneBlue, numElBlueAlt, optSizeBlue)
-        #if the order is pre-defined, use it
-        if scan in incorrectRecognition:
-            for i in range(5):
-                orderedBlue[i, :]=outBlue[idxArr[step][i], :]
-            step+=1
-        else:
-            #order the blue points, use a different function for 6 blue points
-            #5 blue points function works for montages, where Iz has the lowest mean distance to closest 5 yellow points
-            if numElBlue==5:
-                orderedBlue, order=orderReferencePoints(numElYellow, numElBlue, outBlue, outYellow)
-            elif numElBlue==6:
-                orderedBlue, order=orderReferencePoints6(numElBlue, outBlue, twoPoints)
-        #in the first iteration, use points as reference points for the other scans
-        if scan==bestScan:
-            refPoints=orderedBlue
-            use=outYellow
-        #align the points to the reference points, return ordered points and error to closest point
-        trOrderedYellow[:, :, scan], trOrderedBlue[:, :, scan], errLabels[:, scan]=alignPoints(numElYellow, orderedBlue, outYellow, refPoints, use)
-        #print mean and std of error
-        if printErr==True:
-            print(np.mean(errLabels[:, scan]), np.std(errLabels[:, scan]))
-    #plot the last alignment
-    if plot==True:
-        fig = p.figure(figsize=(10, 10)); 
-        ax = fig.add_subplot(1, 2, 1, projection="3d")
-        for i in range(numElBlue):
-            ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
-            ax.scatter(orderedBlue[i, 0], orderedBlue[i, 1], orderedBlue[i, 2], s=10, color='g')
-
-        ax=fig.add_subplot(1, 2, 2, projection="3d")
-        for i in range(numElBlue):
-            ax.scatter(refPoints[i, 0], refPoints[i, 1], refPoints[i, 2], s=10, color='b')
-            ax.scatter(trOrderedBlue[i, 0], trOrderedBlue[i, 1], trOrderedBlue[i, 2], s=10, color='r')
-
-        fig = p.figure(figsize=(10, 10)); 
-        ax = fig.add_subplot(1, 2, 1, projection="3d")
-        for i in range(numElYellow):
-            ax.scatter(use[i, 0], use[i, 1], use[i, 2], s=10, color='b')
-            ax.scatter(outYellow[i, 0], outYellow[i, 1], outYellow[i, 2], s=10, color='g')
-
-        ax=fig.add_subplot(1, 2, 2, projection="3d")
-        for i in range(numElYellow):
-            ax.scatter(use[i, 0], use[i, 1], use[i, 2], s=10, color='b')
-            ax.scatter(trOrderedYellow[i, 0], trOrderedYellow[i, 1], trOrderedYellow[i, 2], s=10, color='r')
-
-    return trOrderedYellow, trOrderedBlue, errLabels
-
+#other functions used in the script
 def icp(reference_points, target_points, max_iterations=15, tolerance=1e-5):
     """
     Perform Iterative Closest Point (ICP) algorithm for point cloud registration.
