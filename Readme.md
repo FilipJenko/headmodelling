@@ -82,20 +82,20 @@ If the new scan also has a different montage
 Content of the repository
 =========================
 
-scan folder - .obj and .jpg file of the scan
-actuallySelectingColors - selecting color masks to use in the script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
-coordsTestColin2.txt - test output
-environment.yml - a file to set up the needed environment with used packages
-functionsFinal - functions used
-Standard_Optodes.txt - coordinates of the montage reference points and montage optode points, which are aligned to the scanned points, in order to give the scanned points the correct label in the output
-testScript - running script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
-unusedFunctions - functions, not used in this script but can be implemented if needed
+  * scan folder - .obj and .jpg file of the scan
+  * actuallySelectingColors - selecting color masks to use in the script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
+  * coordsTestColin2.txt - test output
+  * environment.yml - a file to set up the needed environment with used packages
+  * functionsFinal - functions used
+  * Standard_Optodes.txt - coordinates of the montage reference points and montage optode points, which are aligned to the scanned points, in order to give the scanned points the correct label in the output
+  * testScript - running script; %matplotlib widget is used for spinning a 3D scatter plot; the line can be deleted
+  * unusedFunctions - functions, not used in this script but can be implemented if needed
 
 Montage needed
 ==============
 
-when you decide on a montage, you should add the reference points to the montage
-standard montages can be downloaded from the NIRX support center
+  * when you decide on a montage, you should add the reference points to the montage
+  * standard montages can be downloaded from the NIRX support center
 
 ### Adding reference points can be done in NIRSite ###
 
