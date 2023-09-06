@@ -3,11 +3,11 @@ Filip Jenko, august 2023
 General
 =======
 
-the script processes a scan of a subject's head while wearing cap with fNIRS optodes;
-the color stickers on top of the optodes (as well as at the reference points - Nz, Iz, Rpa, Lpa, Cz) are located with this script
-the coordinates and labels of the points, where the optodes touch the subject's head are written in the output (alongside the mentioned reference points)
-input files are the .obj and .jpg files from the scan, the file Standard_Optodes.txt (contains coordinates of the points from the montage, which are used for alignment) and the inputs written in testScript
-the script outputs a .txt file with the labels (sources, detectors or reference points) and their coordinates
+  * the script processes a scan of a subject's head while wearing cap with fNIRS optodes;
+  * the color stickers on top of the optodes (as well as at the reference points - Nz, Iz, Rpa, Lpa, Cz) are located with this script
+  * the coordinates and labels of the points, where the optodes touch the subject's head are written in the output (alongside the mentioned reference points)
+  * input files are the .obj and .jpg files from the scan, the file Standard_Optodes.txt (contains coordinates of the points from the montage, which are used for alignment) and the inputs written in testScript
+  * the script outputs a .txt file with the labels (sources, detectors or reference points) and their coordinates
 
 Running the script
 ==================
@@ -39,17 +39,18 @@ Rpa and Lpa are determinted from cross product of th known points)
   * labels of the scanned points are determined by the label of the closest montage point; (writePointsTxt) 
   * labels and coordinates of the scanned points are written in the output (writePointsTxt)
 
+
 Visualising which coordinates are in the output
 -----------------------------------------------
 
-open NIRSite and select adult head model
-click import and select: 
+ 1. open NIRSite and select adult head model
+ 2. click import and select: 
   * import from: register digitized positions
   * field separator: comma
   * units: mm
   * registration method: align (rotate, translate)
   * uncheck scan to scalp
-load the output file, which this script generated
+ 3. load the output file, which this script generated
 
 If you notice that a point/sticker is wrongly detected (setting color mask)
 ---------------------------------------------------------------------------
@@ -66,12 +67,14 @@ If you notice that a point/sticker is wrongly detected (setting color mask)
 
 If you want to run the script for a different scan
 --------------------------------------------------
+
   * load the new scan files in the scan folder (the .jpg and .obj files need to have the same name)
   * for running actuallySelectingColors script, change the name of the variable readFileScan to the name of the file without the extension (example: scan/name)
   * for running testScript, change the name of the variable readFileScan to the name of the file without the extension (example: scan/name)
 
 If the new scan also has a different montage
 --------------------------------------------
+
   * first create the new montage and save it
   * take the Standard_Optodes.txt file and copy it to the directory, where this script is running from; if you have several Standard_Optodes files, change the input readFileInputAlignment name if necessary
   * change the inputs numSor, numDet, numScannedOptodes if necessary
@@ -93,9 +96,13 @@ Montage needed
 
 when you decide on a montage, you should add the reference points to the montage
 standard montages can be downloaded from the NIRX support center
-adding reference points can be done in NIRSite: first load your montage, add reference points as optodes labeled as other: Nz, Iz, Rpa, Lpa and Cz should be labeled as  O01, O02, O03, O04, O05 in order
+
+### Adding reference points can be done in NIRSite ###
+
+  * first load your montage
+  * add reference points as optodes labeled as other: Nz, Iz, Rpa, Lpa and Cz should be labeled as  O01, O02, O03, O04, O05 in order
 ORDER OF THE SELECTED REFERENCE POINTS IS IMPORTANT FOR THE SCRIPT TO RUN CORRECTLY
-after this, save the montage; the script needs the file Standard_Optodes.txt, so this file should be in the same folder as the script; if it is not, you can change the path in the input readFileOptodes
+  * after this, save the montage; the script needs the file Standard_Optodes.txt, so this file should be in the same folder as the script; if it is not, you can change the path in the input readFileOptodes
 
 Scanning process
 ================
@@ -103,22 +110,22 @@ Scanning process
 Before scanning
 ---------------
 
-6 stickers (green in the example) for reference;
-5 of them are placed on Nz, Iz, Rpa, Lpa, Cz; 6th one is placed below Iz (distance from 6th sticker to Cz needs to be bigger than distance from Cz to Iz)
-the sticker should be roughly on the same plane as Iz, Nz, and Cz; it will be used for determining, which point is which
-in this example yellow stickers are used for optode detection; if you use another color, change the mask boundaries accordingly; there is another notebook (actuallySelectingColors) for visualization and setting the boundaries
-user should be careful and make sure, cables are not on top of the any sticker, so the scanner can detect them well 
-the script works even if the stickers are not that well seen, if there is only half of the sticker visible, results are accordingly worse
+  * 6 stickers (green in the example) for reference
+  * 5 of them are placed on Nz, Iz, Rpa, Lpa, Cz; 6th one is placed below Iz (distance from 6th sticker to Cz needs to be bigger than distance from Cz to Iz)
+  * the sticker should be roughly on the same plane as Iz, Nz, and Cz; it will be used for determining, which point is which
+  * in this example yellow stickers are used for optode detection; if you use another color, change the mask boundaries accordingly; there is another notebook (actuallySelectingColors) for visualization and setting the boundaries
+  * user should be careful and make sure, cables are not on top of the any sticker, so the scanner can detect them well 
+  * the script works even if the stickers are not that well seen, if there is only half of the sticker visible, results are accordingly worse
 
 Setup
 -----
 
-try to create roughly equal lightning from all sides: close the window drapes and turn on the lights (I used two lights from the sides)
-make sure to put optode cables out of the way so they don't cover the stickers
-calibrate the scanner if necessary (see manual)
-create a project in the ExStar software
-I used portrait mode, hybrid alignment and the resolution of 0.5 mm
-see scanner manual for how to scan
+  * try to create roughly equal lightning from all sides: close the window drapes and turn on the lights (I used two lights from the sides)
+  * make sure to put optode cables out of the way so they don't cover the stickers
+  * calibrate the scanner if necessary (see manual)
+  * create a project in the ExStar software
+  * I used portrait mode, hybrid alignment and the resolution of 0.5 mm
+  * see scanner manual for how to scan
 
 ### Quick tips ###
 
@@ -138,11 +145,11 @@ see scanner manual for how to scan
 Post processing
 ---------------
 
-see if the point cloud has sharp edges of the stickers - good detections
-if there are double edges of the circle stickers, you can use lasso to select points to delete the unwanted points
-I recommend duplicating the folder before deleting the points 
-you can try to create a mesh, even if the result looks to have unnecessary data - sometimes it still turns out fingers
-delete points from the neck down, so the processing is faster
+  * see if the point cloud has sharp edges of the stickers - good detections
+  * if there are double edges of the circle stickers, you can use lasso to select points to delete the unwanted points
+  * I recommend duplicating the folder before deleting the points 
+  * you can try to create a mesh, even if the result looks to have unnecessary data - sometimes it still turns out well
+  * delete points from the neck down, so the processing is faster
 
 ### Creating a mesh ###
 
@@ -157,6 +164,6 @@ I used the settings: create watertight model
 
 ### After scanning ###
 
-what is needed: an .obj and a .jpg file from a scan; the scan needs to be processed (ExStar - scanner software) already and the user should confirm that color stickers can be well seen in the mesh
-ExStar software can be used for generating a mesh from the pointcloud; it also generates the .obj and .jpg files, which are used in the script
+  * what is needed: an .obj and a .jpg file from a scan; the scan needs to be processed (ExStar - scanner software) already and the user should confirm that color stickers can be well seen in the mesh
+  * ExStar software can be used for generating a mesh from the pointcloud; it also generates the .obj and .jpg files, which are used in the script
  
