@@ -33,12 +33,12 @@ Code procedure
   * plane is refitted to every cluster (getPlane)
   * size of the optode is subtracted from the fitted plane in the direction of the normal towards the head (subtractOptode)
   * determining which reference point is which (orderReferencePoints6)
-(Iz and 6th sticker are closest together; Nz is furthest away from both of them; Cz lies roughly on the same plane as Nz, Iz and 6th sticker; 
-Rpa and Lpa are determinted from cross product of th known points)
+(Iz and 6th sticker are closest together; Nz is furthest away from both of them; Cz lies roughly on the same plane as Nz, Iz and 6th sticker; Rpa and Lpa are determinted from cross product of th known points)
   * now we know which scanned reference point is which and which montage reference point is which and we can fit montage points to the scanned points  (writePointsTxt)
   * labels of the scanned points are determined by the label of the closest montage point; (writePointsTxt) 
   * labels and coordinates of the scanned points are written in the output (writePointsTxt)
 
+![flowchart of the code procedure]([https://github.com/FilipJenko/headmodelling/blob/main/images/flowchart1.png])
 
 Visualising which coordinates are in the output
 -----------------------------------------------
