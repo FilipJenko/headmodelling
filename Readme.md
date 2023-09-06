@@ -39,6 +39,7 @@ Code procedure
   * labels of the scanned points are determined by the label of the closest montage point; (writePointsTxt) 
   * labels and coordinates of the scanned points are written in the output (writePointsTxt)
 
+In the flowchart below, rectangles represent functions and their names, text on top of arrows represents inputs and outputs from the functions.
 ![flowchart of the code procedure](https://github.com/FilipJenko/headmodelling/blob/main/images/flowchart1.png)
 
 Visualising which coordinates are in the output
