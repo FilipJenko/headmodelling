@@ -53,6 +53,10 @@ Visualising which coordinates are in the output
   * registration method: align (rotate, translate)
   * uncheck scan to scalp
  3. load the output file, which this script generated
+    
+After the visualization, you should get a similar result to the picture below.
+
+![Example of coordinates visualised in NIRSite](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleNIRSite.jpg)
 
 If you notice that a point/sticker is wrongly detected (setting color mask)
 ---------------------------------------------------------------------------
@@ -99,6 +103,10 @@ Montage needed
   * when you decide on a montage, you should add the reference points to the montage
   * standard montages can be downloaded from the NIRX support center
 
+Below is a picture of the montage downloaded from the NIRx support center. To that, the green dots need to be added (Nz, Iz, Rpa, Lpa and Cz should be labeled as  O01, O02, O03, O04, O05 in order)
+
+![Example of the downloaded montage, visualised in NIRSite](https://github.com/FilipJenko/headmodelling/blob/main/images/montagePre.jpg)
+
 ### Adding reference points can be done in NIRSite ###
 
   * first load your montage
@@ -118,6 +126,10 @@ Before scanning
   * in this example yellow stickers are used for optode detection; if you use another color, change the mask boundaries accordingly; there is another notebook (actuallySelectingColors) for visualization and setting the boundaries
   * user should be careful and make sure, cables are not on top of the any sticker, so the scanner can detect them well 
   * the script works even if the stickers are not that well seen, if there is only half of the sticker visible, results are accordingly worse
+
+Example of the placed stickers can be seen in the pictures below (optode stickers and 5 reference stickers + 6th sticker beneath Iz): 
+![Example of the placed stickers before the scan](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleColin0.jpg)
+![Example of the placed stickers before the scan](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleColin1.jpg)
 
 Setup
 -----
@@ -163,6 +175,10 @@ I used the settings: create watertight model
   * unchecked simplifications
   * unchecked max triangles
   * checked remove spikes
+
+Example of the generated mesh and well detected optodes:
+![Example of the generated mesh and detected stickers](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleMesh0.jpg)
+![Example of the generated mesh and detected stickers](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleMesh1.jpg)
 
 ### After scanning ###
 
