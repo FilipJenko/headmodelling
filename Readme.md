@@ -176,7 +176,7 @@ I used the settings: create watertight model
   * unchecked max triangles
   * checked remove spikes
 
-Example of the generated mesh and well detected optodes:
+Example of the generated mesh and well detected optode sticekers:
 ![Example of the generated mesh and detected stickers](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleMesh0.jpg)
 ![Example of the generated mesh and detected stickers](https://github.com/FilipJenko/headmodelling/blob/main/images/exampleMesh1.jpg)
 
