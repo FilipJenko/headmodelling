@@ -7,7 +7,7 @@ General
   * the color stickers on top of the optodes (as well as at the reference points - Nz, Iz, Rpa, Lpa, Cz) are located with this script
   * the coordinates and labels of the points, where the optodes touch the subject's head are written in the output (alongside the mentioned reference points)
   * points detected as the sticekrs on top of optodes are regarded to as optode points; points detected as the sticekrs on top of Nz, Iz, Rpa, Lpa, Cz are reference points
-  * input files are the .obj and .jpg files from the scan, the file Standard_Optodes.txt (contains coordinates of the points from the montage, which are used for alignment) and the inputs written in testScript
+  * input files are the .obj and .jpg files from the scan, the file Standard_Optodes.txt (contains coordinates of the reference and optode points from a standard model of a head) and the inputs written in testScript
   * the script outputs a .txt file with the labels (sources, detectors or reference points) and their coordinates
 
 Running the script
