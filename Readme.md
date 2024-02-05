@@ -18,7 +18,7 @@ Running the script
 ( if you are using anaconda, go to anaconda prompt, navigate to the pulled directory, and run the command: conda env create -f environment.yml )
   * download the .jpg and .obj files from the link: (don't forget to unzip)
 
-    https://drive.google.com/drive/folders/1F-YYO4djdmKBdn2eeTFTqas8ItmRdH3F (google drive)
+    [https://drive.google.com/drive/folders/1F-YYO4djdmKBdn2eeTFTqas8ItmRdH3F](https://drive.google.com/drive/folders/1ZPBRN5QcruV0vd50cVDwlyPFtOMBi_vs) (google drive)
   * it needs to be placed in the scan folder
   * run the testScript
 
